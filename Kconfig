@@ -1,0 +1,62 @@
+menu "QPC Configuration"
+  choice QPC_PINNED_TO_CORE_CHOICE
+    prompt "The cpu core which QPC run"
+    depends on !FREERTOS_UNICORE
+    help
+      Specify the cpu core to run QPC.
+    config QPC_PINNED_TO_CORE_0
+      bool "Core 0 (PRO CPU)"
+    config QPC_PINNED_TO_CORE_1
+      bool "Core 1 (APP CPU)"
+    config QPC_NO_CORE_AFFINITY
+      bool "No Affinity (PRO or APP CPU)"
+    depends on !FREERTOS_UNICORE
+  endchoice #QPC_PINNED_TO_CORE_CHOICE
+
+  menu "Event Memory Pool"
+    config QPC_SMALL_POOL_SIZE
+      int "Small Memory Pool Size"
+      range 16 512
+      default 32
+      help
+        Max number of events in a small memory pool
+    config QPC_MEDIUM_POOL_SIZE
+      int "Medium Memory Pool Size"
+      range 16 512
+      default 32
+      help
+        Max number of events in a medium memory pool
+    config QPC_LARGE_POOL_SIZE
+      int "Large Memory Pool Size"
+      range 16 512
+      default 32
+      help
+        Max number of events in a large memory pool
+  endmenu #"Event Memory Pool"
+
+  menu "QSpy Configuration"
+    config QPC_QSPY_TX_SIZE
+      int "QSpy Tx Buffer size"
+      range 128 2048
+      default 512
+      help
+        Transmit buffer size used by QSpy
+    config QPC_QSPY_RX_SIZE
+      int "QSpy Rx Buffer size"
+      range 128 2048
+      default 256
+      help
+        Receive buffer size used by QSpy
+    config QPC_QSPY_TX_STACK_SIZE
+      int "QSpy Tx Task Stack Size in bytes"
+      default 2048
+      help
+        Stack size of QSpy transmit task
+    config QPC_QSPY_RX_STACK_SIZE
+      int "QSpy Rx Task Stack Size in bytes"
+      default 2048
+      help
+        Stack size of QSpy receive task
+  endmenu #QSpy Configuration
+
+endmenu #QPC Configuration
