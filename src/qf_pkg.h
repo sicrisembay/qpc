@@ -66,7 +66,7 @@
     * Otherwise #QF_CRIT_ENTRY is invoked with a dummy parameter.
     * @sa #QF_CRIT_ENTRY
     */
-    #define QF_CRIT_ENTRY_()    QF_CRIT_ENTRY(dummy)
+    #define QF_CRIT_ENTRY_(mux)    QF_CRIT_ENTRY(mux)
 
     /*! This is an internal macro for exiting a critical section. */
     /**
@@ -78,12 +78,12 @@
     * Otherwise #QF_CRIT_EXIT is invoked with a dummy parameter.
     * @sa #QF_CRIT_EXIT
     */
-    #define QF_CRIT_EXIT_()     QF_CRIT_EXIT(dummy)
+    #define QF_CRIT_EXIT_(mux)     QF_CRIT_EXIT(mux)
 
 #else
     #define QF_CRIT_STAT_       QF_CRIT_STAT_TYPE critStat_;
-    #define QF_CRIT_ENTRY_()    QF_CRIT_ENTRY(critStat_)
-    #define QF_CRIT_EXIT_()     QF_CRIT_EXIT(critStat_)
+    #define QF_CRIT_ENTRY_(mux) QF_CRIT_ENTRY(mux)
+    #define QF_CRIT_EXIT_(mux)  QF_CRIT_EXIT(mux)
 #endif
 
 /****************************************************************************/
@@ -98,7 +98,7 @@
 
     #define Q_ASSERT_CRIT_(id_, test_) do {\
         if ((test_)) {} else { \
-            QF_CRIT_EXIT_(); \
+            QF_CRIT_EXIT_(&qfMutex); \
             Q_onAssert(&Q_this_module_[0], (int_t)(id_)); \
         } \
     } while (0)
@@ -106,7 +106,7 @@
     #define Q_REQUIRE_CRIT_(id_, test_) Q_ASSERT_CRIT_((id_), (test_))
 
     #define Q_ERROR_CRIT_(id_) do { \
-        QF_CRIT_EXIT_(); \
+        QF_CRIT_EXIT_(&qfMutex); \
         Q_onAssert(&Q_this_module_[0], (int_t)(id_)); \
     } while (0)
 

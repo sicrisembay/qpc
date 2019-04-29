@@ -121,7 +121,7 @@ bool QEQueue_post(QEQueue * const me, QEvt const * const e,
     /* @pre event must be valid */
     Q_REQUIRE_ID(200, e != (QEvt const *)0);
 
-    QF_CRIT_ENTRY_();
+    QF_CRIT_ENTRY_(&qfMutex);
     nFree = me->nFree; /* get volatile into the temporary */
 
     /* required margin available? */
@@ -183,7 +183,7 @@ bool QEQueue_post(QEQueue * const me, QEvt const * const e,
 
         status = false;
     }
-    QF_CRIT_EXIT_();
+    QF_CRIT_EXIT_(&qfMutex);
 
     return status;
 }
@@ -216,7 +216,7 @@ void QEQueue_postLIFO(QEQueue * const me, QEvt const * const e) {
     QEQueueCtr nFree;     /* temporary to avoid UB for volatile access */
     QF_CRIT_STAT_
 
-    QF_CRIT_ENTRY_();
+    QF_CRIT_ENTRY_(&qfMutex);
     nFree = me->nFree;    /* get volatile into the temporary */
 
     /** @pre the queue must be able to accept the event (cannot overflow) */
@@ -254,7 +254,7 @@ void QEQueue_postLIFO(QEQueue * const me, QEvt const * const e) {
         QF_PTR_AT_(me->ring, me->tail) = frontEvt; /* save old front evt */
     }
 
-    QF_CRIT_EXIT_();
+    QF_CRIT_EXIT_(&qfMutex);
 }
 
 /****************************************************************************/
@@ -280,7 +280,7 @@ QEvt const *QEQueue_get(QEQueue * const me) {
     QEvt const *e;
     QF_CRIT_STAT_
 
-    QF_CRIT_ENTRY_();
+    QF_CRIT_ENTRY_(&qfMutex);
     e = me->frontEvt; /* always remove the event from the front location */
 
     /* was the queue not empty? */
@@ -320,7 +320,7 @@ QEvt const *QEQueue_get(QEQueue * const me) {
             QS_END_NOCRIT_()
         }
     }
-    QF_CRIT_EXIT_();
+    QF_CRIT_EXIT_(&qfMutex);
     return e;
 }
 

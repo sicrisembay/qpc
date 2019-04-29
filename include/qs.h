@@ -586,12 +586,12 @@ QSTimeCtr QS_onGetTime(void);
 
 #ifndef QS_CRIT_STAT_TYPE
     #define QS_CRIT_STAT_
-    #define QS_CRIT_ENTRY_()    QS_CRIT_ENTRY(dummy)
-    #define QS_CRIT_EXIT_()     QS_CRIT_EXIT(dummy); QS_REC_DONE()
+    #define QS_CRIT_ENTRY_(mux)    QS_CRIT_ENTRY(mux)
+    #define QS_CRIT_EXIT_(mux)     QS_CRIT_EXIT(mux); QS_REC_DONE()
 #else
     #define QS_CRIT_STAT_       QS_CRIT_STAT_TYPE critStat_;
-    #define QS_CRIT_ENTRY_()    QS_CRIT_ENTRY(critStat_)
-    #define QS_CRIT_EXIT_()     QS_CRIT_EXIT(critStat_); QS_REC_DONE()
+    #define QS_CRIT_ENTRY_(mux)    QS_CRIT_ENTRY(mux)
+    #define QS_CRIT_EXIT_(mux)     QS_CRIT_EXIT(mux); QS_REC_DONE()
 #endif /* QS_CRIT_STAT_TYPE */
 
 #else /* separate QS critical section not defined--use the QF definition */
@@ -620,7 +620,7 @@ QSTimeCtr QS_onGetTime(void);
     * Otherwise #QF_CRIT_ENTRY is invoked with a dummy parameter.
     * @sa #QF_CRIT_ENTRY
     */
-    #define QS_CRIT_ENTRY_()    QF_CRIT_ENTRY(dummy)
+    #define QS_CRIT_ENTRY_(mux)    QF_CRIT_ENTRY(mux)
 
     /*! This is an internal macro for exiting a critical section. */
     /**
@@ -632,12 +632,12 @@ QSTimeCtr QS_onGetTime(void);
     * Otherwise #QF_CRIT_EXIT is invoked with a dummy parameter.
     * @sa #QF_CRIT_EXIT
     */
-    #define QS_CRIT_EXIT_()     QF_CRIT_EXIT(dummy); QS_REC_DONE()
+    #define QS_CRIT_EXIT_(mux)     QF_CRIT_EXIT(mux); QS_REC_DONE()
 
 #else  /* simple unconditional interrupt disabling used */
     #define QS_CRIT_STAT_       QF_CRIT_STAT_TYPE critStat_;
-    #define QS_CRIT_ENTRY_()    QF_CRIT_ENTRY(critStat_)
-    #define QS_CRIT_EXIT_()     QF_CRIT_EXIT(critStat_); QS_REC_DONE()
+    #define QS_CRIT_ENTRY_(mux)    QF_CRIT_ENTRY(mux)
+    #define QS_CRIT_EXIT_(mux)     QF_CRIT_EXIT(mux); QS_REC_DONE()
 #endif /* simple unconditional interrupt disabling used */
 
 #endif /* separate QS critical section not defined */
@@ -659,7 +659,7 @@ QSTimeCtr QS_onGetTime(void);
             || (QS_priv_.locFilter[AP_OBJ] == (obj_)))) \
     { \
         QS_CRIT_STAT_ \
-        QS_CRIT_ENTRY_(); \
+        QS_CRIT_ENTRY_(mux); \
         QS_beginRec((uint_fast8_t)(rec_)); \
         QS_TIME_(); {
 
@@ -684,7 +684,7 @@ QSTimeCtr QS_onGetTime(void);
         && (((objFilter_) == (void *)0) \
             || ((objFilter_) == (obj_)))) \
     { \
-        QS_CRIT_ENTRY_(); \
+        QS_CRIT_ENTRY_(mux); \
         QS_beginRec((uint_fast8_t)(rec_));
 
 /*!  Internal QS macro to end a QS record with exiting critical section. */
@@ -694,7 +694,7 @@ QSTimeCtr QS_onGetTime(void);
 */
 #define QS_END_() \
         QS_endRec(); \
-        QS_CRIT_EXIT_(); \
+        QS_CRIT_EXIT_(mux); \
     }
 
 /*! Internal macro to begin a QS record without entering critical section. */

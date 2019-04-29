@@ -102,7 +102,7 @@ bool QActive_post_(QActive * const me, QEvt const * const e,
     /** @pre event pointer must be valid */
     Q_REQUIRE_ID(100, e != (QEvt const *)0);
 
-    QF_CRIT_ENTRY_();
+    QF_CRIT_ENTRY_(&qfMutex);;
     nFree = me->eQueue.nFree; /* get volatile into the temporary */
 
     /* test-probe#1 for faking queue overflow */
@@ -180,7 +180,7 @@ bool QActive_post_(QActive * const me, QEvt const * const e,
             --me->eQueue.head; /* advance the head (counter clockwise) */
         }
 
-        QF_CRIT_EXIT_();
+        QF_CRIT_EXIT_(&qfMutex);;
     }
     else { /* cannot post the event */
 
@@ -208,7 +208,7 @@ bool QActive_post_(QActive * const me, QEvt const * const e,
         }
 #endif
 
-        QF_CRIT_EXIT_();
+        QF_CRIT_EXIT_(&qfMutex);;
 
         QF_gc(e); /* recycle the event to avoid a leak */
     }
@@ -240,7 +240,7 @@ void QActive_postLIFO_(QActive * const me, QEvt const * const e) {
     QF_CRIT_STAT_
     QS_TEST_PROBE_DEF(&QActive_postLIFO_)
 
-    QF_CRIT_ENTRY_();
+    QF_CRIT_ENTRY_(&qfMutex);;
     nFree = me->eQueue.nFree; /* get volatile into the temporary */
 
     /* test-probe#1 for faking queue overflow */
@@ -301,7 +301,7 @@ void QActive_postLIFO_(QActive * const me, QEvt const * const e) {
 
         QF_PTR_AT_(me->eQueue.ring, me->eQueue.tail) = frontEvt;
     }
-    QF_CRIT_EXIT_();
+    QF_CRIT_EXIT_(&qfMutex);;
 }
 
 /****************************************************************************/
@@ -331,7 +331,7 @@ QEvt const *QActive_get_(QActive * const me) {
     QEvt const *e;
     QF_CRIT_STAT_
 
-    QF_CRIT_ENTRY_();
+    QF_CRIT_ENTRY_(&qfMutex);;
     QACTIVE_EQUEUE_WAIT_(me);  /* wait for event to arrive directly */
 
     e = me->eQueue.frontEvt; /* always remove event from the front location */
@@ -370,7 +370,7 @@ QEvt const *QActive_get_(QActive * const me) {
             QS_2U8_(e->poolId_, e->refCtr_); /* pool Id & ref Count */
         QS_END_NOCRIT_()
     }
-    QF_CRIT_EXIT_();
+    QF_CRIT_EXIT_(&qfMutex);;
     return e;
 }
 
@@ -400,9 +400,9 @@ uint_fast16_t QF_getQueueMin(uint_fast8_t const prio) {
     Q_REQUIRE_ID(400, (prio <= (uint_fast8_t)QF_MAX_ACTIVE)
                       && (QF_active_[prio] != (QActive *)0));
 
-    QF_CRIT_ENTRY_();
+    QF_CRIT_ENTRY_(&qfMutex);;
     min = (uint_fast16_t)QF_active_[prio]->eQueue.nMin;
-    QF_CRIT_EXIT_();
+    QF_CRIT_EXIT_(&qfMutex);;
 
     return min;
 }
@@ -461,10 +461,10 @@ static void QTicker_dispatch_(QHsm * const me, QEvt const * const e) {
 
     (void)e; /* unused parameter */
 
-    QF_CRIT_ENTRY_();
+    QF_CRIT_ENTRY_(&qfMutex);;
     n = QTICKER_CAST(me)->eQueue.tail; /* # ticks since last call */
     QTICKER_CAST(me)->eQueue.tail = (QEQueueCtr)0; /* clear the # ticks */
-    QF_CRIT_EXIT_();
+    QF_CRIT_EXIT_(&qfMutex);;
 
     for (; n > (QEQueueCtr)0; --n) {
         QF_TICK_X((uint_fast8_t)QTICKER_CAST(me)->eQueue.head, me);
@@ -485,7 +485,7 @@ static bool QTicker_post_(QActive * const me, QEvt const * const e,
     (void)e; /* unused parameter */
     (void)margin; /* unused parameter */
 
-    QF_CRIT_ENTRY_();
+    QF_CRIT_ENTRY_(&qfMutex);;
     if (me->eQueue.frontEvt == (QEvt const *)0) {
 
         static QEvt const tickEvt = { (QSignal)0, (uint8_t)0, (uint8_t)0 };
@@ -507,7 +507,7 @@ static bool QTicker_post_(QActive * const me, QEvt const * const e,
         QS_EQC_((uint8_t)0);  /* min number of free entries */
     QS_END_NOCRIT_()
 
-    QF_CRIT_EXIT_();
+    QF_CRIT_EXIT_(&qfMutex);;
 
     return true; /* the event is always posted correctly */
 }

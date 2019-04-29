@@ -189,7 +189,7 @@ static bool QActiveDummy_post_(QActive * const me, QEvt const * const e,
         }
     )
 
-    QF_CRIT_ENTRY_();
+    QF_CRIT_ENTRY_(&qfMutex);
 
     /* is it a dynamic event? */
     if (e->poolId_ != (uint8_t)0) {
@@ -218,7 +218,7 @@ static bool QActiveDummy_post_(QActive * const me, QEvt const * const e,
     {
         QS_onTestPost(sender, me, e, status);
     }
-    QF_CRIT_EXIT_();
+    QF_CRIT_EXIT_(&qfMutex);
 
     /* recycle the event immediately, because it was not really posted */
     QF_gc(e);
@@ -237,7 +237,7 @@ static void QActiveDummy_postLIFO_(QActive * const me, QEvt const * const e) {
         return;
     )
 
-    QF_CRIT_ENTRY_();
+    QF_CRIT_ENTRY_(&qfMutex);
 
     /* is it a dynamic event? */
     if (e->poolId_ != (uint8_t)0) {
@@ -265,7 +265,7 @@ static void QActiveDummy_postLIFO_(QActive * const me, QEvt const * const e) {
         QS_onTestPost((QActive *)0, me, e, true);
     }
 
-    QF_CRIT_EXIT_();
+    QF_CRIT_EXIT_(&qfMutex);
 
     /* recycle the event immediately, because it was not really posted */
     QF_gc(e);
@@ -313,7 +313,7 @@ void QS_tickX_(uint_fast8_t const tickRate, void const * const sender) {
     QTimeEvt *prev;
     QF_CRIT_STAT_
 
-    QF_CRIT_ENTRY_();
+    QF_CRIT_ENTRY_(&qfMutex);
     prev = &QF_timeEvtHead_[tickRate];
 
     QS_BEGIN_NOCRIT_(QS_QF_TICK, (void *)0, (void *)0)
@@ -359,11 +359,11 @@ void QS_tickX_(uint_fast8_t const tickRate, void const * const sender) {
             QS_U8_((uint8_t)tickRate); /* tick rate */
         QS_END_NOCRIT_()
 
-        QF_CRIT_EXIT_(); /* exit critical section before posting */
+        QF_CRIT_EXIT_(&qfMutex); /* exit critical section before posting */
 
         QACTIVE_POST(act, &t->super, sender); /* asserts if queue overflows */
 
-        QF_CRIT_ENTRY_();
+        QF_CRIT_ENTRY_(&qfMutex);
     }
 
     /* update the linked list of time events */
@@ -393,22 +393,22 @@ void QS_tickX_(uint_fast8_t const tickRate, void const * const sender) {
             /* mark time event 't' as NOT linked */
             t->super.refCtr_ &= (uint8_t)(~(uint8_t)TE_IS_LINKED);
             /* do NOT advance the prev pointer */
-            QF_CRIT_EXIT_(); /* exit crit. section to reduce latency */
+            QF_CRIT_EXIT_(&qfMutex); /* exit crit. section to reduce latency */
 
             /* prevent merging critical sections, see NOTE1 below  */
             QF_CRIT_EXIT_NOP();
         }
         else {
             prev = t; /* advance to this time event */
-            QF_CRIT_EXIT_(); /* exit crit. section to reduce latency */
+            QF_CRIT_EXIT_(&qfMutex); /* exit crit. section to reduce latency */
 
             /* prevent merging critical sections, see NOTE1 below  */
             QF_CRIT_EXIT_NOP();
         }
-        QF_CRIT_ENTRY_(); /* re-enter crit. section to continue */
+        QF_CRIT_ENTRY_(&qfMutex); /* re-enter crit. section to continue */
     }
 
-    QF_CRIT_EXIT_();
+    QF_CRIT_EXIT_(&qfMutex);
 }
 
 /****************************************************************************/

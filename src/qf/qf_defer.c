@@ -125,7 +125,7 @@ bool QActive_recall(QActive * const me, QEQueue * const eq) {
 
         QACTIVE_POST_LIFO(me, e); /* post it to the front of the AO's queue */
 
-        QF_CRIT_ENTRY_();
+        QF_CRIT_ENTRY_(&qfMutex);;
 
         /* is it a dynamic event? */
         if (e->poolId_ != (uint8_t)0) {
@@ -151,7 +151,7 @@ bool QActive_recall(QActive * const me, QEQueue * const eq) {
             QS_2U8_(e->poolId_, e->refCtr_); /* pool Id & ref Count */
         QS_END_NOCRIT_()
 
-        QF_CRIT_EXIT_();
+        QF_CRIT_EXIT_(&qfMutex);;
         recalled = true;
     }
     else {

@@ -231,7 +231,7 @@ void QF_gc(QEvt const * const e) {
     /* is it a dynamic event? */
     if (e->poolId_ != (uint8_t)0) {
         QF_CRIT_STAT_
-        QF_CRIT_ENTRY_();
+        QF_CRIT_ENTRY_(&qfMutex);
 
         /* isn't this the last reference? */
         if (e->refCtr_ > (uint8_t)1) {
@@ -244,7 +244,7 @@ void QF_gc(QEvt const * const e) {
 
             QF_EVT_REF_CTR_DEC_(e); /* decrement the ref counter */
 
-            QF_CRIT_EXIT_();
+            QF_CRIT_EXIT_(&qfMutex);
         }
         /* this is the last reference to this event, recycle it */
         else {
@@ -256,7 +256,7 @@ void QF_gc(QEvt const * const e) {
                 QS_2U8_(e->poolId_, e->refCtr_); /* pool Id & ref Count */
             QS_END_NOCRIT_()
 
-            QF_CRIT_EXIT_();
+            QF_CRIT_EXIT_(&qfMutex);
 
             /* pool ID must be in range */
             Q_ASSERT_ID(410, idx < QF_maxPool_);
@@ -291,7 +291,7 @@ QEvt const *QF_newRef_(QEvt const * const e, void const * const evtRef) {
         (e->poolId_ != (uint8_t)0)
         && (evtRef == (void const *)0));
 
-    QF_CRIT_ENTRY_();
+    QF_CRIT_ENTRY_(&qfMutex);
 
     QF_EVT_REF_CTR_INC_(e); /* increments the ref counter */
 
@@ -301,7 +301,7 @@ QEvt const *QF_newRef_(QEvt const * const e, void const * const evtRef) {
         QS_2U8_(e->poolId_, e->refCtr_); /* pool Id & ref Count */
     QS_END_NOCRIT_()
 
-    QF_CRIT_EXIT_();
+    QF_CRIT_EXIT_(&qfMutex);
 
     return e;
 }

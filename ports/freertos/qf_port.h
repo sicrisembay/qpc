@@ -53,11 +53,13 @@
 
 /* QF critical section for FreeRTOS (task level), see NOTE2 */
 /* #define QF_CRIT_STAT_TYPE not defined */
-#define QF_CRIT_ENTRY(stat_)  taskENTER_CRITICAL()
-#define QF_CRIT_EXIT(stat_)   taskEXIT_CRITICAL()
+#define QF_CRIT_ENTRY(mux)    portENTER_CRITICAL(mux)
+#define QF_CRIT_EXIT(mux)     portEXIT_CRITICAL(mux)
 
-#include "FreeRTOS.h"  /* FreeRTOS master include file, see NOTE4 */
-#include "task.h"      /* FreeRTOS task  management */
+#include "freertos/FreeRTOS.h"  /* FreeRTOS master include file, see NOTE4 */
+#include "freertos/task.h"      /* FreeRTOS task  management */
+
+extern portMUX_TYPE qfMutex;  /* instantiated in qf_port.c; used for SMP critical section */
 
 #include "qep_port.h"  /* QEP port */
 #include "qequeue.h"   /* this QP port uses the native QF event queue */
@@ -191,16 +193,16 @@ enum FreeRTOS_TaskAttrs {
     /* FreeRTOS blocking for event queue implementation (task level) */
     #define QACTIVE_EQUEUE_WAIT_(me_) \
         while ((me_)->eQueue.frontEvt == (QEvt *)0) { \
-            QF_CRIT_EXIT_(); \
+            QF_CRIT_EXIT_(&qfMutex); \
             ulTaskNotifyTake(pdTRUE, portMAX_DELAY); \
-            QF_CRIT_ENTRY_(); \
+            QF_CRIT_ENTRY_(&qfMutex); \
         }
 
     /* FreeRTOS signaling (unblocking) for event queue (task level) */
     #define QACTIVE_EQUEUE_SIGNAL_(me_) do { \
-        QF_CRIT_EXIT_(); \
+        QF_CRIT_EXIT_(&qfMutex); \
         xTaskNotifyGive((TaskHandle_t)&(me_)->thread); \
-        QF_CRIT_ENTRY_(); \
+        QF_CRIT_ENTRY_(&qfMutex); \
     } while (0)
 
     #define QF_SCHED_STAT_

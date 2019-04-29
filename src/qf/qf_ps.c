@@ -128,7 +128,7 @@ void QF_publish_(QEvt const * const e, void const * const sender)
     /** @pre the published signal must be within the configured range */
     Q_REQUIRE_ID(200, e->sig < (QSignal)QF_maxPubSignal_);
 
-    QF_CRIT_ENTRY_();
+    QF_CRIT_ENTRY_(&qfMutex);
 
     QS_BEGIN_NOCRIT_(QS_QF_PUBLISH, (void *)0, (void *)0)
         QS_TIME_();          /* the timestamp */
@@ -151,7 +151,7 @@ void QF_publish_(QEvt const * const e, void const * const sender)
 
     /* make a local, modifiable copy of the subscriber list */
     subscrList = QF_PTR_AT_(QF_subscrList_, e->sig);
-    QF_CRIT_EXIT_();
+    QF_CRIT_EXIT_(&qfMutex);
 
     if (QPSet_notEmpty(&subscrList)) { /* any subscribers? */
         uint_fast8_t p;
@@ -213,7 +213,7 @@ void QActive_subscribe(QActive const * const me, enum_t const sig) {
               && ((uint_fast8_t)0 < p) && (p <= (uint_fast8_t)QF_MAX_ACTIVE)
               && (QF_active_[p] == me));
 
-    QF_CRIT_ENTRY_();
+    QF_CRIT_ENTRY_(&qfMutex);
 
     QS_BEGIN_NOCRIT_(QS_QF_ACTIVE_SUBSCRIBE, QS_priv_.locFilter[AO_OBJ], me)
         QS_TIME_();             /* timestamp */
@@ -224,7 +224,7 @@ void QActive_subscribe(QActive const * const me, enum_t const sig) {
     /* set the priority bit */
     QPSet_insert(&QF_PTR_AT_(QF_subscrList_, sig), p);
 
-    QF_CRIT_EXIT_();
+    QF_CRIT_EXIT_(&qfMutex);
 }
 
 /****************************************************************************/
@@ -264,7 +264,7 @@ void QActive_unsubscribe(QActive const * const me, enum_t const sig) {
               && ((uint_fast8_t)0 < p) && (p <= (uint_fast8_t)QF_MAX_ACTIVE)
               && (QF_active_[p] == me));
 
-    QF_CRIT_ENTRY_();
+    QF_CRIT_ENTRY_(&qfMutex);
 
     QS_BEGIN_NOCRIT_(QS_QF_ACTIVE_UNSUBSCRIBE, QS_priv_.locFilter[AO_OBJ], me)
         QS_TIME_();             /* timestamp */
@@ -275,7 +275,7 @@ void QActive_unsubscribe(QActive const * const me, enum_t const sig) {
     /* clear priority bit */
     QPSet_remove(&QF_PTR_AT_(QF_subscrList_, sig), p);
 
-    QF_CRIT_EXIT_();
+    QF_CRIT_EXIT_(&qfMutex);
 }
 
 /****************************************************************************/
@@ -311,7 +311,7 @@ void QActive_unsubscribeAll(QActive const * const me) {
 
     for (sig = (enum_t)Q_USER_SIG; sig < QF_maxPubSignal_; ++sig) {
         QF_CRIT_STAT_
-        QF_CRIT_ENTRY_();
+        QF_CRIT_ENTRY_(&qfMutex);
         if (QPSet_hasElement(&QF_PTR_AT_(QF_subscrList_, sig), p)) {
             QPSet_remove(&QF_PTR_AT_(QF_subscrList_, sig), p);
 
@@ -322,7 +322,7 @@ void QActive_unsubscribeAll(QActive const * const me) {
                 QS_OBJ_(me);           /* this active object */
             QS_END_NOCRIT_()
         }
-        QF_CRIT_EXIT_();
+        QF_CRIT_EXIT_(&qfMutex);
 
         /* prevent merging critical sections */
         QF_CRIT_EXIT_NOP();

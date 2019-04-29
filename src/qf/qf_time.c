@@ -81,7 +81,7 @@ void QF_tickX_(uint_fast8_t const tickRate, void const * const sender)
     QTimeEvt *prev = &QF_timeEvtHead_[tickRate];
     QF_CRIT_STAT_
 
-    QF_CRIT_ENTRY_();
+    QF_CRIT_ENTRY_(&qfMutex);
 
     QS_BEGIN_NOCRIT_(QS_QF_TICK, (void *)0, (void *)0)
         QS_TEC_((QTimeEvtCtr)(++prev->ctr)); /* tick ctr */
@@ -115,7 +115,7 @@ void QF_tickX_(uint_fast8_t const tickRate, void const * const sender)
             /* mark time event 't' as NOT linked */
             t->super.refCtr_ &= (uint8_t)(~(uint8_t)TE_IS_LINKED);
             /* do NOT advance the prev pointer */
-            QF_CRIT_EXIT_(); /* exit crit. section to reduce latency */
+            QF_CRIT_EXIT_(&qfMutex); /* exit crit. section to reduce latency */
 
             /* prevent merging critical sections, see NOTE1 below  */
             QF_CRIT_EXIT_NOP();
@@ -156,22 +156,22 @@ void QF_tickX_(uint_fast8_t const tickRate, void const * const sender)
                     QS_U8_((uint8_t)tickRate); /* tick rate */
                 QS_END_NOCRIT_()
 
-                QF_CRIT_EXIT_(); /* exit critical section before posting */
+                QF_CRIT_EXIT_(&qfMutex); /* exit critical section before posting */
 
                 /* QACTIVE_POST() asserts internally if the queue overflows */
                 QACTIVE_POST(act, &t->super, sender);
             }
             else {
                 prev = t;         /* advance to this time event */
-                QF_CRIT_EXIT_();  /* exit crit. section to reduce latency */
+                QF_CRIT_EXIT_(&qfMutex);  /* exit crit. section to reduce latency */
 
                 /* prevent merging critical sections, see NOTE1 below  */
                 QF_CRIT_EXIT_NOP();
             }
         }
-        QF_CRIT_ENTRY_(); /* re-enter crit. section to continue */
+        QF_CRIT_ENTRY_(&qfMutex); /* re-enter crit. section to continue */
     }
-    QF_CRIT_EXIT_();
+    QF_CRIT_EXIT_(&qfMutex);
 }
 
 /*****************************************************************************
@@ -313,7 +313,7 @@ void QTimeEvt_armX(QTimeEvt * const me,
     (void)ctr; /* avoid compiler warning about unused variable */
 #endif
 
-    QF_CRIT_ENTRY_();
+    QF_CRIT_ENTRY_(&qfMutex);
     me->ctr = nTicks;
     me->interval = interval;
 
@@ -346,7 +346,7 @@ void QTimeEvt_armX(QTimeEvt * const me,
         QS_U8_((uint8_t)tickRate); /* tick rate */
     QS_END_NOCRIT_()
 
-    QF_CRIT_EXIT_();
+    QF_CRIT_EXIT_(&qfMutex);
 }
 
 /****************************************************************************/
@@ -372,7 +372,7 @@ bool QTimeEvt_disarm(QTimeEvt * const me) {
     bool wasArmed;
     QF_CRIT_STAT_
 
-    QF_CRIT_ENTRY_();
+    QF_CRIT_ENTRY_(&qfMutex);
 
     /* is the time event actually armed? */
     if (me->ctr != (QTimeEvtCtr)0) {
@@ -403,7 +403,7 @@ bool QTimeEvt_disarm(QTimeEvt * const me) {
         QS_END_NOCRIT_()
 
     }
-    QF_CRIT_EXIT_();
+    QF_CRIT_EXIT_(&qfMutex);
     return wasArmed;
 }
 
@@ -442,7 +442,7 @@ bool QTimeEvt_rearm(QTimeEvt * const me, QTimeEvtCtr const nTicks) {
                       && (nTicks != (QTimeEvtCtr)0)
                       && (me->super.sig >= (QSignal)Q_USER_SIG));
 
-    QF_CRIT_ENTRY_();
+    QF_CRIT_ENTRY_(&qfMutex);
 
     /* is the time evt not running? */
     if (me->ctr == (QTimeEvtCtr)0) {
@@ -484,7 +484,7 @@ bool QTimeEvt_rearm(QTimeEvt * const me, QTimeEvtCtr const nTicks) {
                 ((wasArmed != false) ? (uint8_t)1 : (uint8_t)0));
     QS_END_NOCRIT_()
 
-    QF_CRIT_EXIT_();
+    QF_CRIT_EXIT_(&qfMutex);
     return wasArmed;
 }
 
@@ -536,9 +536,9 @@ QTimeEvtCtr QTimeEvt_currCtr(QTimeEvt const * const me) {
     QTimeEvtCtr ret;
     QF_CRIT_STAT_
 
-    QF_CRIT_ENTRY_();
+    QF_CRIT_ENTRY_(&qfMutex);
     ret = me->ctr;
-    QF_CRIT_EXIT_();
+    QF_CRIT_EXIT_(&qfMutex);
 
     return ret;
 }

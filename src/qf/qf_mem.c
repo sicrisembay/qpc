@@ -165,7 +165,7 @@ void QMPool_put(QMPool * const me, void *b) {
     Q_REQUIRE_ID(200, (me->nFree < me->nTot)
                       && QF_PTR_RANGE_(b, me->start, me->end));
 
-    QF_CRIT_ENTRY_();
+    QF_CRIT_ENTRY_(&qfMutex);
     ((QFreeBlock *)b)->next = (QFreeBlock *)me->free_head;/* link into list */
     me->free_head = b;      /* set as new head of the free list */
     ++me->nFree;            /* one more free block in this pool */
@@ -176,7 +176,7 @@ void QMPool_put(QMPool * const me, void *b) {
         QS_MPC_(me->nFree); /* the number of free blocks in the pool */
     QS_END_NOCRIT_()
 
-    QF_CRIT_EXIT_();
+    QF_CRIT_EXIT_(&qfMutex);
 }
 
 /****************************************************************************/
@@ -212,7 +212,7 @@ void *QMPool_get(QMPool * const me, uint_fast16_t const margin) {
     QFreeBlock *fb;
     QF_CRIT_STAT_
 
-    QF_CRIT_ENTRY_();
+    QF_CRIT_ENTRY_(&qfMutex);
 
     /* have more free blocks than the requested margin? */
     if (me->nFree > (QMPoolCtr)margin) {
@@ -269,7 +269,7 @@ void *QMPool_get(QMPool * const me, uint_fast16_t const margin) {
             QS_MPC_(margin);    /* the requested margin */
         QS_END_NOCRIT_()
     }
-    QF_CRIT_EXIT_();
+    QF_CRIT_EXIT_(&qfMutex);
 
     return fb;  /* return the block or NULL pointer to the caller */
 }
@@ -295,9 +295,9 @@ uint_fast16_t QF_getPoolMin(uint_fast8_t const poolId) {
     Q_REQUIRE_ID(400, ((uint_fast8_t)1 <= poolId)
                       && (poolId <= QF_maxPool_));
 
-    QF_CRIT_ENTRY_();
+    QF_CRIT_ENTRY_(&qfMutex);
     min = (uint_fast16_t)QF_pool_[poolId - (uint_fast8_t)1].nMin;
-    QF_CRIT_EXIT_();
+    QF_CRIT_EXIT_(&qfMutex);
 
     return min;
 }
