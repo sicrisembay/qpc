@@ -753,13 +753,13 @@ void QS_sig_dict(enum_t const sig, void const * const obj,
     if (*name == (char_t)'&') {
         QS_PTR_INC_(name);
     }
-    QS_CRIT_ENTRY_();
+    QS_CRIT_ENTRY_(&qfMutex);
     QS_beginRec((uint_fast8_t)QS_SIG_DICT);
     QS_SIG_((QSignal)sig);
     QS_OBJ_(obj);
     QS_STR_(name);
     QS_endRec();
-    QS_CRIT_EXIT_();
+    QS_CRIT_EXIT_(&qfMutex);
     QS_onFlush();
 }
 
@@ -774,12 +774,12 @@ void QS_obj_dict(void const * const obj,
     if (*name == (char_t)'&') {
         QS_PTR_INC_(name);
     }
-    QS_CRIT_ENTRY_();
+    QS_CRIT_ENTRY_(&qfMutex);
     QS_beginRec((uint_fast8_t)QS_OBJ_DICT);
     QS_OBJ_(obj);
     QS_STR_(name);
     QS_endRec();
-    QS_CRIT_EXIT_();
+    QS_CRIT_EXIT_(&qfMutex);
     QS_onFlush();
 }
 
@@ -792,12 +792,12 @@ void QS_fun_dict(void (* const fun)(void), char_t const *name) {
     if (*name == (char_t)'&') {
         QS_PTR_INC_(name);
     }
-    QS_CRIT_ENTRY_();
+    QS_CRIT_ENTRY_(&qfMutex);
     QS_beginRec((uint_fast8_t)QS_FUN_DICT);
     QS_FUN_(fun);
     QS_STR_(name);
     QS_endRec();
-    QS_CRIT_EXIT_();
+    QS_CRIT_EXIT_(&qfMutex);
     QS_onFlush();
 }
 
@@ -809,12 +809,12 @@ void QS_usr_dict(enum_t const rec,
 {
     QS_CRIT_STAT_
 
-    QS_CRIT_ENTRY_();
+    QS_CRIT_ENTRY_(&qfMutex);
     QS_beginRec((uint_fast8_t)QS_USR_DICT);
     QS_U8_((uint8_t)rec);
     QS_STR_(name);
     QS_endRec();
-    QS_CRIT_EXIT_();
+    QS_CRIT_EXIT_(&qfMutex);
     QS_onFlush();
 }
 

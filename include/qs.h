@@ -659,7 +659,7 @@ QSTimeCtr QS_onGetTime(void);
             || (QS_priv_.locFilter[AP_OBJ] == (obj_)))) \
     { \
         QS_CRIT_STAT_ \
-        QS_CRIT_ENTRY_(mux); \
+        QS_CRIT_ENTRY_(&qfMutex); \
         QS_beginRec((uint_fast8_t)(rec_)); \
         QS_TIME_(); {
 
@@ -684,7 +684,7 @@ QSTimeCtr QS_onGetTime(void);
         && (((objFilter_) == (void *)0) \
             || ((objFilter_) == (obj_)))) \
     { \
-        QS_CRIT_ENTRY_(mux); \
+        QS_CRIT_ENTRY_(&qfMutex); \
         QS_beginRec((uint_fast8_t)(rec_));
 
 /*!  Internal QS macro to end a QS record with exiting critical section. */
@@ -694,7 +694,7 @@ QSTimeCtr QS_onGetTime(void);
 */
 #define QS_END_() \
         QS_endRec(); \
-        QS_CRIT_EXIT_(mux); \
+        QS_CRIT_EXIT_(&qfMutex); \
     }
 
 /*! Internal macro to begin a QS record without entering critical section. */
