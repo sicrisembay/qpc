@@ -45,7 +45,7 @@
 #define QF_THREAD_TYPE        StaticTask_t
 
 /* The maximum number of active objects in the application, see NOTE1 */
-#define QF_MAX_ACTIVE         32
+#define QF_MAX_ACTIVE         16
 
 /* QF interrupt disabling/enabling (task level) */
 #define QF_INT_DISABLE()      taskDISABLE_INTERRUPTS()
