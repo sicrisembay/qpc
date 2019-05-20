@@ -66,12 +66,12 @@ Q_DEFINE_THIS_MODULE("qf_port")
 static void task_function(void *pvParameters); /* FreeRTOS task signature */
 
 static BaseType_t bQfStarted = pdFALSE;
-static void freertos_tick_hook_pro_cpu(void)
+static void freertos_tick_hook(void)
 {
     BaseType_t xHigherPriorityTaskWoken = pdFALSE;
     if(bQfStarted) {
         /* process time events for rate 0 */
-        QF_TICK_X_FROM_ISR(0U, &xHigherPriorityTaskWoken, &freertos_tick_hook_pro_cpu);
+        QF_TICK_X_FROM_ISR(0U, &xHigherPriorityTaskWoken, &freertos_tick_hook);
         /* notify FreeRTOS to perform context switch from ISR, if needed */
         if(xHigherPriorityTaskWoken) {
             portYIELD_FROM_ISR();
@@ -83,7 +83,13 @@ static void freertos_tick_hook_pro_cpu(void)
 void QF_init(void) {
     bQfStarted = pdFALSE;
     vPortCPUInitializeMutex(&qfMutex);
-    esp_register_freertos_tick_hook_for_cpu(freertos_tick_hook_pro_cpu, 0);
+#if defined( CONFIG_QPC_PINNED_TO_CORE_0 )
+    esp_register_freertos_tick_hook_for_cpu(freertos_tick_hook, PRO_CPU_NUM);
+#elif defined( CONFIG_QPC_PINNED_TO_CORE_1)
+    esp_register_freertos_tick_hook_for_cpu(freertos_tick_hook, APP_CPU_NUM);
+#else
+    esp_register_freertos_tick_hook_for_cpu(freertos_tick_hook, APP_CPU_NUM);
+#endif
 }
 /*..........................................................................*/
 int_t QF_run(void) {
