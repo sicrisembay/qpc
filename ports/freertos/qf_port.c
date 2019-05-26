@@ -49,6 +49,7 @@
 
 #include "freertos/portmacro.h"
 #include "esp_freertos_hooks.h"
+#include "esp_attr.h"
 
 portMUX_TYPE qfMutex;
 
@@ -66,7 +67,7 @@ Q_DEFINE_THIS_MODULE("qf_port")
 static void task_function(void *pvParameters); /* FreeRTOS task signature */
 
 static BaseType_t bQfStarted = pdFALSE;
-static void freertos_tick_hook(void)
+IRAM_ATTR static void freertos_tick_hook(void)
 {
     BaseType_t xHigherPriorityTaskWoken = pdFALSE;
     if(bQfStarted) {
@@ -205,12 +206,12 @@ static void task_function(void *pvParameters) { /* FreeRTOS task signature */
 /*==========================================================================*/
 /* The "FromISR" QP APIs for the FreeRTOS port... */
 #ifdef Q_SPY
-bool QActive_postFromISR_(QActive * const me, QEvt const * const e,
+IRAM_ATTR bool QActive_postFromISR_(QActive * const me, QEvt const * const e,
                           uint_fast16_t const margin,
                           BaseType_t * const pxHigherPriorityTaskWoken,
                           void const * const sender)
 #else
-bool QActive_postFromISR_(QActive * const me, QEvt const * const e,
+IRAM_ATTR bool QActive_postFromISR_(QActive * const me, QEvt const * const e,
                           uint_fast16_t const margin,
                           BaseType_t * const pxHigherPriorityTaskWoken)
 #endif
@@ -306,11 +307,11 @@ bool QActive_postFromISR_(QActive * const me, QEvt const * const e,
 }
 /*..........................................................................*/
 #ifdef Q_SPY
-void QF_publishFromISR_(QEvt const * const e,
+IRAM_ATTR void QF_publishFromISR_(QEvt const * const e,
                         BaseType_t * const pxHigherPriorityTaskWoken,
                         void const * const sender)
 #else
-void QF_publishFromISR_(QEvt const * const e,
+IRAM_ATTR void QF_publishFromISR_(QEvt const * const e,
                         BaseType_t * const pxHigherPriorityTaskWoken)
 #endif
 {
@@ -377,11 +378,11 @@ void QF_publishFromISR_(QEvt const * const e,
 }
 /*..........................................................................*/
 #ifdef Q_SPY
-void QF_tickXFromISR_(uint_fast8_t const tickRate,
+IRAM_ATTR void QF_tickXFromISR_(uint_fast8_t const tickRate,
                       BaseType_t * const pxHigherPriorityTaskWoken,
                       void const * const sender)
 #else
-void QF_tickXFromISR_(uint_fast8_t const tickRate,
+IRAM_ATTR void QF_tickXFromISR_(uint_fast8_t const tickRate,
                       BaseType_t * const pxHigherPriorityTaskWoken)
 #endif
 {
@@ -477,7 +478,7 @@ void QF_tickXFromISR_(uint_fast8_t const tickRate,
     taskEXIT_CRITICAL_ISR(&qfMutex);
 }
 /*..........................................................................*/
-QEvt *QF_newXFromISR_(uint_fast16_t const evtSize,
+IRAM_ATTR QEvt *QF_newXFromISR_(uint_fast16_t const evtSize,
                       uint_fast16_t const margin, enum_t const sig)
 {
     QEvt *e;
@@ -522,7 +523,7 @@ QEvt *QF_newXFromISR_(uint_fast16_t const evtSize,
     return e; /* can't be NULL if we can't tolerate bad allocation */
 }
 /*..........................................................................*/
-void QF_gcFromISR(QEvt const * const e) {
+IRAM_ATTR void QF_gcFromISR(QEvt const * const e) {
 
     /* is it a dynamic event? */
     if (e->poolId_ != (uint8_t)0) {
@@ -561,7 +562,7 @@ void QF_gcFromISR(QEvt const * const e) {
     }
 }
 /*..........................................................................*/
-void QMPool_putFromISR(QMPool * const me, void *b) {
+IRAM_ATTR void QMPool_putFromISR(QMPool * const me, void *b) {
 
     /** @pre # free blocks cannot exceed the total # blocks and
     * the block pointer must be from this pool.
@@ -584,7 +585,7 @@ void QMPool_putFromISR(QMPool * const me, void *b) {
     taskEXIT_CRITICAL_ISR(&qfMutex);
 }
 /*..........................................................................*/
-void *QMPool_getFromISR(QMPool * const me, uint_fast16_t const margin) {
+IRAM_ATTR void *QMPool_getFromISR(QMPool * const me, uint_fast16_t const margin) {
     QFreeBlock *fb;
     taskENTER_CRITICAL_ISR(&qfMutex);
 

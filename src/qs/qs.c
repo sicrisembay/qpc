@@ -42,6 +42,10 @@
 #include "qs_pkg.h"       /* QS package-scope interface */
 #include "qassert.h"      /* QP embedded systems-friendly assertions */
 
+#if defined(QPC_ESP32_PORT)
+#include "esp_attr.h"
+#endif
+
 Q_DEFINE_THIS_MODULE("qs")
 
 
@@ -303,7 +307,11 @@ void QS_filterOff(uint_fast8_t rec) {
 * or #QS_BEGIN_NOCRIT, depending if it's called in a normal code or from
 * a critical section.
 */
+#if defined(QPC_ESP32_PORT)
+IRAM_ATTR void QS_beginRec(uint_fast8_t rec) {
+#else
 void QS_beginRec(uint_fast8_t rec) {
+#endif
     uint8_t b      = (uint8_t)(QS_priv_.seq + (uint8_t)1);
     uint8_t chksum = (uint8_t)0;      /* reset the checksum */
     uint8_t *buf   = QS_priv_.buf;    /* put in a temporary (register) */
@@ -330,7 +338,11 @@ void QS_beginRec(uint_fast8_t rec) {
 * or #QS_END_NOCRIT, depending if it's called in a normal code or from
 * a critical section.
 */
+#if defined(QPC_ESP32_PORT)
+IRAM_ATTR void QS_endRec(void) {
+#else
 void QS_endRec(void) {
+#endif
     uint8_t *buf = QS_priv_.buf;  /* put in a temporary (register) */
     QSCtr   head = QS_priv_.head;
     QSCtr   end  = QS_priv_.end;
@@ -551,7 +563,11 @@ void QS_u32(uint8_t format, uint32_t d) {
 /** @note This function is only to be used through macros, never in the
 * client code directly.
 */
+#if defined(QPC_ESP32_PORT)
+IRAM_ATTR void QS_u8_(uint8_t d) {
+#else
 void QS_u8_(uint8_t d) {
+#endif
     uint8_t chksum = QS_priv_.chksum; /* put in a temporary (register) */
     uint8_t *buf = QS_priv_.buf;      /* put in a temporary (register) */
     QSCtr   head = QS_priv_.head;     /* put in a temporary (register) */
@@ -568,7 +584,11 @@ void QS_u8_(uint8_t d) {
 /** @note This function is only to be used through macros, never in the
 * client code directly.
 */
+#if defined(QPC_ESP32_PORT)
+IRAM_ATTR void QS_u8u8_(uint8_t d1, uint8_t d2) {
+#else
 void QS_u8u8_(uint8_t d1, uint8_t d2) {
+#endif
     uint8_t chksum = QS_priv_.chksum; /* put in a temporary (register) */
     uint8_t *buf = QS_priv_.buf;      /* put in a temporary (register) */
     QSCtr   head = QS_priv_.head;     /* put in a temporary (register) */
@@ -587,7 +607,11 @@ void QS_u8u8_(uint8_t d1, uint8_t d2) {
 * @note This function is only to be used through macros, never in the
 * client code directly.
 */
+#if defined(QPC_ESP32_PORT)
+IRAM_ATTR void QS_u16_(uint16_t d) {
+#else
 void QS_u16_(uint16_t d) {
+#endif
     uint8_t b      = (uint8_t)d;
     uint8_t chksum = QS_priv_.chksum; /* put in a temporary (register) */
     uint8_t *buf = QS_priv_.buf;      /* put in a temporary (register) */
@@ -610,7 +634,11 @@ void QS_u16_(uint16_t d) {
 /** @note This function is only to be used through macros, never in the
 * client code directly.
 */
+#if defined(QPC_ESP32_PORT)
+IRAM_ATTR void QS_u32_(uint32_t d) {
+#else
 void QS_u32_(uint32_t d) {
+#endif
     uint8_t chksum = QS_priv_.chksum; /* put in a temporary (register) */
     uint8_t *buf = QS_priv_.buf;      /* put in a temporary (register) */
     QSCtr   head = QS_priv_.head;     /* put in a temporary (register) */
