@@ -35,6 +35,16 @@ menu "QPC Configuration"
   endmenu #"Event Memory Pool"
 
   menu "QSpy Configuration"
+    config QPC_QSPY_TX_PIN
+      int "QSpy Transmit IO pin"
+      default 18
+      help
+        IO pin used for QSpy transmit
+    config QPC_QSPY_RX_PIN
+      int "QSpy Receive IO pin"
+      default 19
+      help
+        IO pin used for QSpy receive
     config QPC_QSPY_TX_SIZE
       int "QSpy Tx Buffer size"
       range 128 2048
