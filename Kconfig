@@ -23,25 +23,29 @@ menu "QP Embedded Framework"
       visible if QP_ENABLED
       config QPC_SMALL_POOL_SIZE
         int "Small Memory Pool Size"
-        depends on QP_ENABLED
         range 16 512
         default 32
         help
           Max number of events in a small memory pool
       config QPC_MEDIUM_POOL_SIZE
         int "Medium Memory Pool Size"
-        depends on QP_ENABLED
         range 16 512
         default 32
         help
           Max number of events in a medium memory pool
+      config QPC_MEDIUM_POOL_ENTRY_SIZE
+        int "Medium Memory Pool Entry Size"
+        default 4
       config QPC_LARGE_POOL_SIZE
         int "Large Memory Pool Size"
-        depends on QP_ENABLED
         range 16 512
         default 32
         help
           Max number of events in a large memory pool
+      config QPC_LARGE_POOL_ENTRY_SIZE
+        int "Large Memory Pool Entry Size"
+        default 8
+
     endmenu #"Event Memory Pool"
 
   endmenu #QPC Configuration
