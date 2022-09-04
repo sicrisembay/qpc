@@ -9,6 +9,10 @@ set(include_dirs "include"
 
 set(priv_include_dirs "src")
 
+if(CONFIG_QPC_QSPY_ENABLE)
+    list(APPEND src_dirs "src/qs")
+endif()
+
 idf_component_register(SRC_DIRS ${src_dirs}
                     INCLUDE_DIRS ${include_dirs}
                     PRIV_INCLUDE_DIRS ${priv_include_dirs}
@@ -17,6 +21,5 @@ idf_component_register(SRC_DIRS ${src_dirs}
 target_compile_definitions(${COMPONENT_TARGET} PUBLIC "-DQPC_ESP32_PORT")
 
 if(CONFIG_QPC_QSPY_ENABLE)
-    list(APPEND src_dirs "src/qs")
     target_compile_definitions(${COMPONENT_TARGET} PUBLIC "-DQ_SPY")
 endif()
