@@ -39,6 +39,8 @@
 #include <stdint.h>  // Exact-width types. WG14/N843 C99 Standard
 #include <stdbool.h> // Boolean type.      WG14/N843 C99 Standard
 
+#define C2000_QPC_PORT      (1)
+
 #ifdef QP_CONFIG
 #include "qp_config.h" // external QP configuration
 #endif
