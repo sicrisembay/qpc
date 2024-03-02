@@ -36,10 +36,13 @@
 #ifndef QS_PORT_H_
 #define QS_PORT_H_
 
-// object pointer size in bytes
-#define QS_OBJ_PTR_SIZE  4U
+// QS time-stamp size in words
+#define QS_TIME_SIZE     2U
 
-// function pointer size in bytes
+// object pointer size in words
+#define QS_OBJ_PTR_SIZE  2U
+
+// function pointer size in words
 #define QS_FUN_PTR_SIZE  4U
 
 //============================================================================

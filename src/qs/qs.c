@@ -426,7 +426,11 @@ void QS_locFilter_(int_fast16_t const filter) {
 
 //............................................................................
 void QS_beginRec_(uint_fast8_t const rec) {
+#if C2000_QPC_PORT
+    uint8_t const b = (uint8_t)((QS_priv_.seq + 1U) & 0x00FF);
+#else
     uint8_t const b = (uint8_t)(QS_priv_.seq + 1U);
+#endif
     uint8_t chksum  = 0U;                // reset the checksum
     uint8_t * const buf = QS_priv_.buf;  // put in a temporary (register)
     QSCtr head          = QS_priv_.head; // put in a temporary (register)
@@ -437,7 +441,11 @@ void QS_beginRec_(uint_fast8_t const rec) {
 
     QS_INSERT_ESC_BYTE_(b)
 
+#if C2000_QPC_PORT
+    chksum = (uint8_t)((chksum + rec) & 0x00FF); // update checksum
+#else
     chksum = (uint8_t)(chksum + rec); // update checksum
+#endif
     QS_INSERT_BYTE_((uint8_t)rec) // rec byte does not need escaping
 
     QS_priv_.head   = head;   // save the head
@@ -449,7 +457,11 @@ void QS_endRec_(void) {
     uint8_t * const buf = QS_priv_.buf;  // put in a temporary (register)
     QSCtr   head        = QS_priv_.head;
     QSCtr const end     = QS_priv_.end;
+#if C2000_QPC_PORT
+    uint8_t b = QS_priv_.chksum & 0x00FF;
+#else
     uint8_t b = QS_priv_.chksum;
+#endif
     b ^= 0xFFU;   // invert the bits in the checksum
 
     QS_priv_.used += 2U; // 2 bytes about to be added
@@ -516,10 +528,15 @@ void QS_u16_raw_(uint16_t const d) {
 
     QS_priv_.used += 2U; // 2 bytes are about to be added
 
+#if C2000_QPC_PORT
+    QS_INSERT_ESC_BYTE_((uint8_t)(x & 0x00ff))
+    x >>= 8U;
+    QS_INSERT_ESC_BYTE_((uint8_t)(x & 0x00ff))
+#else
     QS_INSERT_ESC_BYTE_((uint8_t)x)
     x >>= 8U;
     QS_INSERT_ESC_BYTE_((uint8_t)x)
-
+#endif
     QS_priv_.head   = head;    // save the head
     QS_priv_.chksum = chksum;  // save the checksum
 }
@@ -534,12 +551,20 @@ void QS_u32_raw_(uint32_t const d) {
 
     QS_priv_.used += 4U; // 4 bytes are about to be added
     for (uint_fast8_t i = 4U; i != 0U; --i) {
+#if C2000_QPC_PORT
+        QS_INSERT_ESC_BYTE_((uint8_t)(x & 0x00ff))
+#else
         QS_INSERT_ESC_BYTE_((uint8_t)x)
+#endif
         x >>= 8U;
     }
 
     QS_priv_.head   = head;    // save the head
+#if C2000_QPC_PORT
+    QS_priv_.chksum = chksum & 0x00FF;  // save the checksum
+#else
     QS_priv_.chksum = chksum;  // save the checksum
+#endif
 }
 
 //............................................................................
@@ -574,7 +599,11 @@ void QS_str_raw_(char const * const str) {
     ++used;
 
     QS_priv_.head   = head;   // save the head
+#if C2000_QPC_PORT
+    QS_priv_.chksum = chksum & 0x00FF; // save the checksum
+#else
     QS_priv_.chksum = chksum; // save the checksum
+#endif
     QS_priv_.used   = used;   // save # of used buffer space
 }
 
@@ -606,8 +635,11 @@ void QS_u16_fmt_(
     uint8_t * const buf = QS_priv_.buf;  // put in a temporary (register)
     QSCtr head          = QS_priv_.head; // put in a temporary (register)
     QSCtr const end     = QS_priv_.end;  // put in a temporary (register)
+#if C2000_QPC_PORT
+    uint8_t b = (uint8_t)(d & 0x00FF);
+#else
     uint8_t b = (uint8_t)d;
-
+#endif
     QS_priv_.used += 3U; // 3 bytes about to be added
 
     QS_INSERT_ESC_BYTE_(format)
@@ -635,7 +667,11 @@ void QS_u32_fmt_(
 
     // insert 4 bytes...
     for (uint_fast8_t i = 4U; i != 0U; --i) {
+#if C2000_QPC_PORT
+        QS_INSERT_ESC_BYTE_((uint8_t)(x & 0x00FF))
+#else
         QS_INSERT_ESC_BYTE_((uint8_t)x)
+#endif
         x >>= 8U;
     }
 
@@ -888,12 +924,19 @@ void QS_target_info_pre_(uint8_t const isReset) {
     static uint8_t const ZERO = (uint8_t)'0';
     static uint8_t const * const TIME = (uint8_t const *)&Q_BUILD_TIME[0];
     static uint8_t const * const DATE = (uint8_t const *)&Q_BUILD_DATE[0];
+#if (C2000_QPC_PORT)
+    static union {
+        uint32_t u32;
+        uint8_t  u8[2];
+    } endian_test;
+    endian_test.u32 = 0x00010002U;
+#else
     static union {
         uint16_t u16;
         uint8_t  u8[2];
     } endian_test;
-
     endian_test.u16 = 0x0102U;
+#endif
     QS_beginRec_((uint_fast8_t)QS_TARGET_INFO);
     QS_U8_PRE_(isReset);
     QS_U16_PRE_(((endian_test.u8[0] == 0x01U) // big endian?
