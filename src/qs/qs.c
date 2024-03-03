@@ -449,7 +449,11 @@ void QS_beginRec_(uint_fast8_t const rec) {
     QS_INSERT_BYTE_((uint8_t)rec) // rec byte does not need escaping
 
     QS_priv_.head   = head;   // save the head
+#if C2000_QPC_PORT
+    QS_priv_.chksum = chksum & 0x00FF; // save the checksum
+#else
     QS_priv_.chksum = chksum; // save the checksum
+#endif
 }
 
 //............................................................................
@@ -497,7 +501,11 @@ void QS_u8_raw_(uint8_t const d) {
     QS_INSERT_ESC_BYTE_(d)
 
     QS_priv_.head   = head;    // save the head
+#if C2000_QPC_PORT
+    QS_priv_.chksum = chksum & 0x00FF;  // save the checksum
+#else
     QS_priv_.chksum = chksum;  // save the checksum
+#endif
 }
 
 //............................................................................
@@ -515,7 +523,11 @@ void QS_2u8_raw_(
     QS_INSERT_ESC_BYTE_(d2)
 
     QS_priv_.head   = head;    // save the head
+#if C2000_QPC_PORT
+    QS_priv_.chksum = chksum & 0x00FF;  // save the checksum
+#else
     QS_priv_.chksum = chksum;  // save the checksum
+#endif
 }
 
 //............................................................................
@@ -538,7 +550,11 @@ void QS_u16_raw_(uint16_t const d) {
     QS_INSERT_ESC_BYTE_((uint8_t)x)
 #endif
     QS_priv_.head   = head;    // save the head
+#if C2000_QPC_PORT
+    QS_priv_.chksum = chksum & 0x00FF;  // save the checksum
+#else
     QS_priv_.chksum = chksum;  // save the checksum
+#endif
 }
 
 //............................................................................
@@ -623,7 +639,11 @@ void QS_u8_fmt_(
     QS_INSERT_ESC_BYTE_(d)
 
     QS_priv_.head   = head;   // save the head
+#if C2000_QPC_PORT
+    QS_priv_.chksum = chksum & 0x00FF; // save the checksum
+#else
     QS_priv_.chksum = chksum; // save the checksum
+#endif
 }
 
 //............................................................................
@@ -644,11 +664,19 @@ void QS_u16_fmt_(
 
     QS_INSERT_ESC_BYTE_(format)
     QS_INSERT_ESC_BYTE_(b)
+#if C2000_QPC_PORT
+    b = (uint8_t)(d >> 8U) & 0x00FF;
+#else
     b = (uint8_t)(d >> 8U);
+#endif
     QS_INSERT_ESC_BYTE_(b)
 
     QS_priv_.head   = head;   // save the head
+#if C2000_QPC_PORT
+    QS_priv_.chksum = chksum & 0x00FF; // save the checksum
+#else
     QS_priv_.chksum = chksum; // save the checksum
+#endif
 }
 
 //............................................................................
@@ -676,7 +704,11 @@ void QS_u32_fmt_(
     }
 
     QS_priv_.head   = head;   // save the head
+#if C2000_QPC_PORT
+    QS_priv_.chksum = chksum & 0x00FF; // save the checksum
+#else
     QS_priv_.chksum = chksum; // save the checksum
+#endif
 }
 
 //............................................................................
@@ -699,7 +731,11 @@ void QS_str_fmt_(char const * const str) {
     QS_INSERT_BYTE_(0U) // zero-terminate the string
 
     QS_priv_.head   = head;    // save the head
+#if C2000_QPC_PORT
+    QS_priv_.chksum = chksum & 0x00FF;  // save the checksum
+#else
     QS_priv_.chksum = chksum;  // save the checksum
+#endif
     QS_priv_.used   = used;    // save # of used buffer space
 }
 
@@ -727,7 +763,11 @@ void QS_mem_fmt_(
     }
 
     QS_priv_.head   = head;   // save the head
+#if C2000_QPC_PORT
+    QS_priv_.chksum = chksum & 0x00FF; // save the checksum
+#else
     QS_priv_.chksum = chksum; // save the checksum
+#endif
 }
 
 //............................................................................

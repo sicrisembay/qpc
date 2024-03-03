@@ -37,7 +37,7 @@
 #define QS_PORT_H_
 
 // QS time-stamp size in words
-#define QS_TIME_SIZE     2U
+#define QS_TIME_SIZE     4U
 
 // object pointer size in words
 #define QS_OBJ_PTR_SIZE  2U
