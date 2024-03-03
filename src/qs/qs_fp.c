@@ -74,7 +74,11 @@ void QS_f32_fmt_(
     }
 
     QS_priv_.head   = head;   // save the head
+#if C2000_QPC_PORT
+    QS_priv_.chksum = chksum & 0x00FF; // save the checksum
+#else
     QS_priv_.chksum = chksum; // save the checksum
+#endif
 }
 
 //! @static @private @memberof QS
@@ -124,7 +128,11 @@ void QS_f64_fmt_(
     }
 
     QS_priv_.head   = head;   // save the head
+#if C2000_QPC_PORT
+    QS_priv_.chksum = chksum & 0x00FF; // save the checksum
+#else
     QS_priv_.chksum = chksum; // save the checksum
+#endif
 }
 
 //! @endcond
