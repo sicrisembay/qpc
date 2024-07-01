@@ -109,14 +109,14 @@ void QMPool_init(QMPool * const me,
         ++me->nTot;              // one more free block in the pool
     }
 
-    fb->next  = (QFreeBlock *)0;    // the last link points to NULL
+    fb->next  = (QFreeBlock *)0; // the last link points to NULL
     #ifndef Q_UNSAFE
     fb->next_dis = (uintptr_t)(~Q_UINTPTR_CAST_(fb->next));
     #endif
 
     me->nFree = me->nTot;        // all blocks are free
     me->nMin  = me->nTot;        // the minimum # free blocks
-    me->start = poolSto;         // the original start this pool buffer
+    me->start = (QFreeBlock *)poolSto; // the original start this pool buffer
     me->end   = fb;              // the last block in this pool
 
     QF_MEM_APP();
@@ -226,7 +226,7 @@ void QMPool_put(QMPool * const me,
     #endif
 
     // set as new head of the free list
-    me->free_head = block;
+    me->free_head = fb;
 
     ++me->nFree; // one more free block in this pool
 

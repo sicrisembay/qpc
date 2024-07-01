@@ -309,7 +309,7 @@ QEvt const * QF_newRef_(
 //${QF::QF-dyn::deleteRef_} ..................................................
 //! @static @private @memberof QF
 void QF_deleteRef_(void const * const evtRef) {
-    QEvt const * const e = evtRef;
+    QEvt const * const e = (QEvt const *)evtRef;
 
     QF_CRIT_STAT
     QF_CRIT_ENTRY();
