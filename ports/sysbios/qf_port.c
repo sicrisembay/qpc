@@ -41,6 +41,8 @@
 #else
     #include "qs_dummy.h" // disable the QS software tracing
 #endif // Q_SPY
+#include "string.h"       // For memset
+#include "xdc/runtime/System.h" // For System_snprintf
 
 Q_DEFINE_THIS_MODULE("qf_port")
 
@@ -96,28 +98,227 @@ void QActive_start_(QActive * const me,
     uint_fast16_t const stkSize,
     void const * const par)
 {
-    /// TODO
+    QF_CRIT_STAT
+    QF_CRIT_ENTRY();
+    // precondition:
+    // - queue storage must be provided
+    // - queue size must be provided
+    // - stack storage must be provided
+    // - stack size must be provided
+    Q_REQUIRE_INCRIT(200,
+        (qSto != (QEvt const **)0) && (qLen > 0U)
+        && (stkSto != (void *)0) && (stkSize > 0U));
+    QF_CRIT_EXIT();
+
+    Error_Block eb;
+    Error_init(&eb);
+
+    // QF-priority of the AO
+    me->prio  = (uint8_t)(prioSpec & 0xFFU);
+    QActive_register_(me); // register this AO
+
+    // create SysBIOS elements for Event Queue
+    // Event data queue
+    Queue_Params queueParams;
+    Queue_Params_init(&queueParams);
+    queueParams.instance->name = me->osObject.name;
+    Queue_construct(&me->eQueue.data_queue, &queueParams);
+    // Event free queue
+    Queue_Params_init(&queueParams);
+    queueParams.instance->name = me->osObject.name;
+    Queue_construct(&me->eQueue.free_queue, &queueParams);
+    // Event semaphore
+    Semaphore_Params semParams;
+    Semaphore_Params_init(&semParams);
+    semParams.mode = Semaphore_Mode_COUNTING;
+    semParams.instance->name = me->osObject.name;
+    Semaphore_construct(&me->eQueue.data_sem, 0, &semParams);
+
+    Queue_Handle free_queue = Queue_handle(&me->eQueue.free_queue);
+    event_t * pElem = (event_t *)(qSto);  // messy recasting!
+    for(uint16_t i = 0; i < qLen; i++) {
+        Queue_put(free_queue, &(pElem[i].queue_elem));
+    }
+    me->eQueue.numFreeMsgs = qLen;
+
+    // top-most initial tran. (virtual call)
+    (*me->super.vptr->init)(&me->super, par, me->prio);
+    QS_FLUSH(); // flush the QS trace buffer
+
+    // create SysBIOS task
+    Task_Params taskParams;
+    Error_init(&eb);
+    Task_Params_init(&taskParams);
+    taskParams.priority = me->prio;
+    taskParams.stackSize = stkSize;
+    taskParams.stack = stkSto;
+    taskParams.arg0 = (UArg)me;
+    taskParams.instance->name = me->osObject.name;
+    Task_construct(&me->osObject.static_task, &taskFxn, &taskParams, &eb);
+    me->thread = Task_handle(&me->osObject.static_task);
+    QF_CRIT_ENTRY();
+    Q_ASSERT_INCRIT(220, (me->thread != (Task_Handle)0) &&
+                         (Error_check(&eb) == FALSE));
+    QF_CRIT_EXIT();
 }
 //............................................................................
 void QActive_setAttr(QActive *const me, uint32_t attr1, void const *attr2) {
-    /// TODO
+    QF_CRIT_STAT
+    QF_CRIT_ENTRY();
+    switch(attr1) {
+        case TASK_NAME_ATTR: {
+            memset(me->osObject.name, 0, sizeof(me->osObject.name));
+            if(attr2 != (char *)0) {
+                System_snprintf(me->osObject.name, MAX_LEN_NAME, "%s", attr2);
+            } else {
+                System_snprintf(me->osObject.name, MAX_LEN_NAME, "AO_no_name");
+            }
+            break;
+        }
+        default: {
+            break;
+        }
+    }
+    QF_CRIT_EXIT();
 }
 
 //============================================================================
 bool QActive_post_(QActive * const me, QEvt const * const e,
                    uint_fast16_t const margin, void const * const sender)
 {
+#ifndef Q_SPY
+    Q_UNUSED_PAR(sender);
+#endif
+
+    QF_CRIT_STAT
+    QF_CRIT_ENTRY();
+
+    const int16_t nFree = me->eQueue.numFreeMsgs;
+
     bool status = false;
-    /// TODO
+    if (margin == QF_NO_MARGIN) {
+        if (nFree > 0U) {
+            status = true; // can post
+        } else {
+            status = false; // cannot post
+            Q_ERROR_INCRIT(510); // must be able to post the event
+        }
+    } else if (nFree > margin) {
+        status = true; // can post
+    } else {
+        status = false; // cannot post
+    }
+
+    if (status) { // can post the event?
+        QS_BEGIN_PRE_(QS_QF_ACTIVE_POST, me->prio)
+            QS_TIME_PRE_();      // timestamp
+            QS_OBJ_PRE_(sender); // the sender object
+            QS_SIG_PRE_(e->sig); // the signal of the event
+            QS_OBJ_PRE_(me);     // this active object (recipient)
+            QS_2U8_PRE_(QEvt_getPoolNum_(e), e->refCtr_); // poolNum & refCtr
+            QS_EQC_PRE_((QEQueueCtr)nFree); // # free entries
+            QS_EQC_PRE_(0U);     // min # free entries (unknown)
+        QS_END_PRE_()
+
+        if (QEvt_getPoolNum_(e) != 0U) { // is it a pool event?
+            QEvt_refCtr_inc_(e); // increment the reference counter
+        }
+
+        event_t * ptr_elem;
+        Queue_Handle data_queue = Queue_handle(&me->eQueue.data_queue);
+        Queue_Handle free_queue = Queue_handle(&me->eQueue.free_queue);
+        Semaphore_Handle data_sem = Semaphore_handle(&me->eQueue.data_sem);
+
+        /* Get element from free queue */
+        ptr_elem = Queue_dequeue(free_queue);
+        Q_ASSERT_INCRIT(__LINE__, ptr_elem != (event_t *)free_queue);
+        me->eQueue.numFreeMsgs--;
+        ptr_elem->ptr_event = (QEvt *)e;
+        /* Put element to tail of data queue */
+        Queue_enqueue(data_queue, &(ptr_elem->queue_elem));
+        /* Post to data semaphore */
+        Semaphore_post(data_sem);
+
+    } else {
+        QS_BEGIN_PRE_(QS_QF_ACTIVE_POST_ATTEMPT, me->prio)
+            QS_TIME_PRE_();      // timestamp
+            QS_OBJ_PRE_(sender); // the sender object
+            QS_SIG_PRE_(e->sig); // the signal of the event
+            QS_OBJ_PRE_(me);     // this active object (recipient)
+            QS_2U8_PRE_(QEvt_getPoolNum_(e), e->refCtr_); // poolNum & refCtr
+            QS_EQC_PRE_((QEQueueCtr)nFree); // # free entries
+            QS_EQC_PRE_(margin); // margin requested
+        QS_END_PRE_()
+    }
+    QF_CRIT_EXIT();
+
     return status;
 }
 //............................................................................
 void QActive_postLIFO_(QActive * const me, QEvt const * const e) {
-    /// TODO
+    QF_CRIT_STAT
+    QF_CRIT_ENTRY();
+
+    QS_BEGIN_PRE_(QS_QF_ACTIVE_POST_LIFO, me->prio)
+        QS_TIME_PRE_();          // timestamp
+        QS_SIG_PRE_(e->sig);     // the signal of this event
+        QS_OBJ_PRE_(me);         // this active object
+        QS_2U8_PRE_(QEvt_getPoolNum_(e), e->refCtr_); // poolNum & refCtr
+        QS_EQC_PRE_((QEQueueCtr)me->eQueue.numFreeMsgs); // # free
+        QS_EQC_PRE_(0U);         // min # free entries (unknown)
+    QS_END_PRE_()
+
+    if (QEvt_getPoolNum_(e) != 0U) { // is it a pool event?
+        QEvt_refCtr_inc_(e); // increment the reference counter
+    }
+
+    event_t * ptr_elem;
+    Queue_Handle data_queue = Queue_handle(&me->eQueue.data_queue);
+    Queue_Handle free_queue = Queue_handle(&me->eQueue.free_queue);
+    Semaphore_Handle data_sem = Semaphore_handle(&me->eQueue.data_sem);
+
+    /* Get element from free queue */
+    ptr_elem = Queue_dequeue(free_queue);
+    Q_ASSERT_INCRIT(__LINE__, ptr_elem != (event_t *)free_queue);
+    me->eQueue.numFreeMsgs--;
+    ptr_elem->ptr_event = (QEvt *)e;
+    /* Put element to front of data queue */
+    Queue_putHead(data_queue, &(ptr_elem->queue_elem));
+    /* Post to data semaphore */
+    Semaphore_post(data_sem);
+
+
+    QF_CRIT_EXIT();
 }
 //............................................................................
-QEvt const *QActive_get_(QActive * const me) {
-    QEvt const *e;
-    /// TODO
+QEvt const * QActive_get_(QActive * const me) {
+    event_t * ptr_elem;
+    QEvt * e;
+    Semaphore_Handle data_sem = Semaphore_handle(&me->eQueue.data_sem);
+    Queue_Handle data_queue = Queue_handle(&me->eQueue.data_queue);
+    Queue_Handle free_queue = Queue_handle(&me->eQueue.free_queue);
+
+    bool ret = Semaphore_pend(data_sem, BIOS_WAIT_FOREVER);
+    Q_ASSERT(true == ret);
+
+    QS_CRIT_STAT
+    QS_CRIT_ENTRY();
+
+    /* Get element from front of data queue */
+    ptr_elem = Queue_get(data_queue);
+    Q_ASSERT_INCRIT(__LINE__,(ptr_elem != (event_t *)data_queue));
+    e = ptr_elem->ptr_event;
+    Queue_enqueue(free_queue, &(ptr_elem->queue_elem));
+    me->eQueue.numFreeMsgs++;
+
+    QS_BEGIN_PRE_(QS_QF_ACTIVE_GET, me->prio)
+        QS_TIME_PRE_();          // timestamp
+        QS_SIG_PRE_(e->sig);     // the signal of this event
+        QS_OBJ_PRE_(me);         // this active object
+        QS_2U8_PRE_(QEvt_getPoolNum_(e), e->refCtr_); // poolNum & refCtr
+        QS_EQC_PRE_((QEQueueCtr)(me->eQueue.numFreeMsgs)); // # free
+    QS_END_PRE_()
+
+    QS_CRIT_EXIT();
     return e;
 }

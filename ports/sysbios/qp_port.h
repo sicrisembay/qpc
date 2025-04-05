@@ -48,43 +48,79 @@
 #include "qp_config.h" // external QP configuration
 #endif
 
+// include files -------------------------------------------------------------
+#include "ti/sysbios/BIOS.h"
+#include "ti/sysbios/knl/Task.h"
+#include "ti/sysbios/knl/Queue.h"
+#include "ti/sysbios/knl/Semaphore.h"
+#include "ti/sysbios/knl/Swi.h"
+#include "ti/sysbios/family/c28/Hwi.h"
+#include <xdc/runtime/Error.h>
+
+#ifndef uint8_t
+#define uint8_t uint16_t    // C2000 does not support uint8_t
+#endif
+
 // no-return function specifier (C11 Standard)
 #define Q_NORETURN   _Noreturn void
 
+struct QEvt;  // Forward declaration (see definition in qp.h)
+typedef struct {
+    Queue_Elem queue_elem;
+    struct QEvt * ptr_event;
+} event_t;
+
+typedef struct {
+    Semaphore_Struct data_sem;
+    Queue_Struct data_queue;
+    Queue_Struct free_queue;
+    Int numFreeMsgs;
+} event_queue_t;
+
+#define MAX_LEN_NAME    (16)
+typedef struct {
+    char name[MAX_LEN_NAME + 1];
+    Task_Struct static_task;
+} os_object_t;
+
 // QActive event queue and thread types for SysBIOS
-#define QACTIVE_EQUEUE_TYPE     Queue_Struct
-//#define QACTIVE_OS_OBJ_TYPE     TODO:: TBD
-#define QACTIVE_THREAD_TYPE     Task_Struct
+#define QACTIVE_EQUEUE_TYPE     event_queue_t
+#define QACTIVE_OS_OBJ_TYPE     os_object_t
+#define QACTIVE_THREAD_TYPE     Task_Handle
 
 // QF interrupt disabling/enabling
 #define QF_INT_DISABLE()        /// TODO: TBD
 #define QF_INT_ENABLE()         /// TODO: TBD
 
 // QF critical section for SysBIOS
-#define QF_CRIT_STAT            /// TODO: TBD
-#define QF_CRIT_ENTRY()         /// TODO: TBD
-#define QF_CRIT_EXIT()          /// TODO: TBD
+#define QF_CRIT_STAT            uint16_t keyHwi; \
+                                uint16_t keySwi; \
+                                uint16_t keyTask;
 
-// include files -------------------------------------------------------------
-#include "ti/sysbios/BIOS.h"
-#include "ti/sysbios/knl/Task.h"
-#include "ti/sysbios/knl/Queue.h"
+#define QF_CRIT_ENTRY()         keyHwi = Hwi_disable(); \
+                                keySwi = Swi_disable(); \
+                                keyTask = Task_disable()
 
-#ifndef uint8_t
-#define uint8_t uint16_t    // C2000 does not support uint8_t
-#endif
+#define QF_CRIT_EXIT()          Task_restore(keyTask); \
+                                Swi_restore(keySwi); \
+                                Hwi_restore(keyHwi)
 
 #include "qequeue.h"   // QP event queue (for deferring events)
 #include "qmpool.h"    // QP memory pool (for event pools)
 #include "qp.h"        // QP platform-independent public interface
 
+
+enum SysBIOS_TaskAttrs {
+    TASK_NAME_ATTR
+};
+
 //============================================================================
 // interface used only inside QF, but not in applications
 
 #ifdef QP_IMPL
-    #define QF_SCHED_STAT_
-    #define QF_SCHED_LOCK_(prio_)   /// TODO
-    #define QF_SCHED_UNLOCK_()      /// TODO
+    #define QF_SCHED_STAT_          uint16_t keyTaskSched;
+    #define QF_SCHED_LOCK_(prio_)   keyTaskSched = Task_disable()  // disable only Task scheduling
+    #define QF_SCHED_UNLOCK_()      Task_restore(keyTaskSched)
 
     // native QF event pool customization
     #define QF_EPOOL_TYPE_        QMPool
