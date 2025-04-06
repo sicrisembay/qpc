@@ -61,6 +61,10 @@
 #define uint8_t uint16_t    // C2000 does not support uint8_t
 #endif
 
+#ifndef int8_t
+#define int8_t int16_t      // C2000 does not support int8_t
+#endif
+
 // no-return function specifier (C11 Standard)
 #define Q_NORETURN   _Noreturn void
 
